@@ -14,13 +14,26 @@ def find_free_port():
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 
+def get_ip_info(socket, source_ip="0.0.0.0", source_port=54320, stun_host=None,
+                stun_port=3478):
+    nat_type, nat = stun.get_nat_type(socket, source_ip, source_port,
+                                      stun_host=stun_host, stun_port=stun_port)
+    external_ip = nat['ExternalIP']
+    external_port = nat['ExternalPort']
+
+    return (nat_type, external_ip, external_port)
 
 async def main(loop):
     ip = "0.0.0.0"
     port = find_free_port()
 
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(2)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((ip, port))
+
     print("Start getting external ip and port by stun server")
-    nat_type, external_ip, external_port = stun.get_ip_info(ip, port)
+    nat_type, external_ip, external_port = get_ip_info(s, ip, port)
     print(f"{nat_type} {external_ip}:{external_port}")
     print(f"Send your ip and port to your friend - {external_ip}:{external_port}")
 
@@ -29,13 +42,12 @@ async def main(loop):
     dest_addr = (dest_ip, int(dest_port))
 
     print("start sending data...")
-    sock = socket.socket(socket.AF_INET,  # Internet
-                         socket.SOCK_DGRAM)  # UDP
+
     pc_name = platform.node()
     for _ in range(1000):
-        sock.sendto(str.encode(f"Привет от {pc_name}"), dest_addr)
+        s.sendto(str.encode(f"Привет от {pc_name}"), dest_addr)
         time.sleep(1)
-        data, _ = sock.recvfrom(1024)
+        data, _ = s.recvfrom(1024)
         print("вам прислали: " + data.decode())
 
     #print(f"start server on ip: {ip} port: {port}")
