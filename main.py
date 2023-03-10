@@ -2,6 +2,7 @@ import asyncio
 import secrets
 import socket
 import platform
+import time
 from contextlib import closing
 import stun
 from tcp_and_udp_proxy import udp_proxy
@@ -24,8 +25,8 @@ async def main(loop):
     print(f"Send your ip and port to your friend - {external_ip}:{external_port}")
 
     print("Write your friend ip and port in format - ip:port")
-    dest_ip, dest_port = input().split()
-    dest_addr = (dest_ip, dest_port)
+    dest_ip, dest_port = input().split(":")
+    dest_addr = (dest_ip, int(dest_port))
 
     print("start sending data...")
     sock = socket.socket(socket.AF_INET,  # Internet
