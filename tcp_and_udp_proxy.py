@@ -1,5 +1,3 @@
-import argparse
-import signal
 import logging
 import select
 import socket
@@ -14,7 +12,7 @@ REMOTE_DATA_HANDLER = lambda x: x
 BUFFER_SIZE = 2 ** 10  # 1024. Keep buffer size as power of 2.
 
 
-def udp_proxy(src, dst):
+def udp_proxy(src, dst, src_socket = None):
     """Run UDP proxy.
 
     Arguments:
@@ -25,11 +23,10 @@ def udp_proxy(src, dst):
     LOGGER.debug('Src: {}'.format(src))
     LOGGER.debug('Dst: {}'.format(dst))
 
-    proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    proxy_socket.bind(ip_to_tuple(src))
+    proxy_socket = src_socket
 
     client_address = None
-    server_address = ip_to_tuple(dst)
+    server_address = dst
 
     LOGGER.debug('Looping proxy (press Ctrl-Break to stop)...')
     while True:
@@ -66,13 +63,13 @@ def tcp_proxy(src, dst):
     sockets = []
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(ip_to_tuple(src))
+    s.bind(src)
     s.listen(1)
 
     s_src, _ = s.accept()
 
     s_dst = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s_dst.connect(ip_to_tuple(dst))
+    s_dst.connect(dst)
 
     sockets.append(s_src)
     sockets.append(s_dst)
@@ -92,16 +89,3 @@ def tcp_proxy(src, dst):
 
 
 # end-of-function tcp_proxy
-
-
-def ip_to_tuple(ip):
-    """Parse IP string and return (ip, port) tuple.
-
-    Arguments:
-    ip -- IP address:port string. I.e.: '127.0.0.1:8000'.
-    """
-    ip, port = ip.split(':')
-    return (ip, int(port))
-
-
-# end-of-function ip_to_tuple

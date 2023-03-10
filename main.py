@@ -14,6 +14,7 @@ def find_free_port():
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 
+
 def get_ip_info(socket, source_ip="0.0.0.0", source_port=54320, stun_host=None,
                 stun_port=3478):
     nat_type, nat = stun.get_nat_type(socket, source_ip, source_port,
@@ -22,6 +23,7 @@ def get_ip_info(socket, source_ip="0.0.0.0", source_port=54320, stun_host=None,
     external_port = nat['ExternalPort']
 
     return (nat_type, external_ip, external_port)
+
 
 async def main(loop):
     ip = "0.0.0.0"
@@ -37,34 +39,23 @@ async def main(loop):
     print(f"{nat_type} {external_ip}:{external_port}")
     print(f"Send your ip and port to your friend - {external_ip}:{external_port}")
 
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((ip, port))
+
     print("Write your friend ip and port in format - ip:port")
     dest_ip, dest_port = input().split(":")
     dest_addr = (dest_ip, int(dest_port))
 
-    print("start sending data...")
+    virt_ip = "127.0.0.1"
+    virt_port = find_free_port()
+    virt_addr = (virt_ip, virt_port)
 
-    pc_name = platform.node()
-    for _ in range(1000):
-        s.sendto(str.encode(f"Привет от {pc_name}"), dest_addr)
-        time.sleep(1)
-        data, _ = s.recvfrom(1024)
-        print("вам прислали: " + data.decode())
+    print(f"start virtual server on, put it in your program {virt_ip}:{virt_port}")
+    # peer_host = external_ip + ":" + str(external_port)
+    s.settimeout(60)
+    udp_proxy(dest_addr, virt_addr, s)
 
-    #print(f"start server on ip: {ip} port: {port}")
-    #peer_host = external_ip + ":" + str(external_port)
-
-    #print("Select mode.")
-    #print("1 - Server mode. You want share your server")
-    #print("2 - Client mode. You want get access to server")
-    #mode = input()
-    #if mode == 1:
-    #    print("Write source for proxing data 'ip:port' ")
-    #    real_server_host = input()
-    #    udp_proxy(peer_host, real_server_host)
-    #elif mode == 2:
-    #    local_host = ip + ":" + str(port)
-    #    udp_proxy(local_host, peer_host)
-    #    print("Use this host to connect for your peer" + local_host)
 
 if __name__ == '__main__':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # remove on non windows system
